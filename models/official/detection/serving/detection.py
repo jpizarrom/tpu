@@ -110,8 +110,12 @@ def build_predictions(features,
   # Return flattened raw outputs.
   if not params.postprocess.apply_nms:
     predictions = {
-        'raw_boxes': tf.identity(model_outputs['raw_boxes'], 'RawBoxes'),
-        'raw_scores': tf.identity(model_outputs['raw_scores'], 'RawScores'),
+      'box_outputs': tf.identity(model_outputs['box_outputs'], 'RawBoxOutputs'),
+      'class_outputs': tf.identity(model_outputs['class_outputs'], 'RawClassPredictions'),
+      'anchor_boxes': tf.identity(model_outputs['anchor_boxes'], 'RawAnchorBoxes'),
+        # 'raw_boxes': tf.identity(model_outputs['raw_boxes'], 'RawBoxes'),
+        # 'raw_scores': tf.identity(model_outputs['raw_scores'], 'RawScores'),
+        # 'raw_shapes': tf.identity(model_outputs['raw_shapes'], 'RawShapes'),
     }
     return predictions, model_outputs
 

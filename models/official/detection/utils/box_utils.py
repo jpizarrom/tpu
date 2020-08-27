@@ -43,10 +43,10 @@ def yxyx_to_xywh(boxes):
     raise ValueError(
         'boxes.shape[-1] is {:d}, but must be 4.'.format(boxes.shape[-1]))
 
-  boxes_ymin = boxes[..., 0]
-  boxes_xmin = boxes[..., 1]
-  boxes_width = boxes[..., 3] - boxes[..., 1]
-  boxes_height = boxes[..., 2] - boxes[..., 0]
+  boxes_ymin = boxes[:, :, 0]
+  boxes_xmin = boxes[:, :, 1]
+  boxes_width = boxes[:, :, 3] - boxes[:, :, 1]
+  boxes_height = boxes[:, :, 2] - boxes[:, :, 0]
   new_boxes = np.stack(
       [boxes_xmin, boxes_ymin, boxes_width, boxes_height], axis=-1)
 
@@ -76,16 +76,16 @@ def jitter_boxes(boxes, noise_scale=0.025):
 
   with tf.name_scope('jitter_boxes'):
     bbox_jitters = tf.random_normal(boxes.get_shape(), stddev=noise_scale)
-    ymin = boxes[..., 0:1]
-    xmin = boxes[..., 1:2]
-    ymax = boxes[..., 2:3]
-    xmax = boxes[..., 3:4]
+    ymin = boxes[:, :, 0:1]
+    xmin = boxes[:, :, 1:2]
+    ymax = boxes[:, :, 2:3]
+    xmax = boxes[:, :, 3:4]
     width = xmax - xmin
     height = ymax - ymin
-    new_center_x = (xmin + xmax) / 2.0 + bbox_jitters[..., 0:1] * width
-    new_center_y = (ymin + ymax) / 2.0 + bbox_jitters[..., 1:2] * height
-    new_width = width * tf.exp(bbox_jitters[..., 2:3])
-    new_height = height * tf.exp(bbox_jitters[..., 3:4])
+    new_center_x = (xmin + xmax) / 2.0 + bbox_jitters[:, :, 0:1] * width
+    new_center_y = (ymin + ymax) / 2.0 + bbox_jitters[:, :, 1:2] * height
+    new_width = width * tf.exp(bbox_jitters[:, :, 2:3])
+    new_height = height * tf.exp(bbox_jitters[:, :, 3:4])
     jittered_boxes = tf.concat([
         new_center_y - new_height * 0.5,
         new_center_x - new_width * 0.5,
@@ -121,13 +121,13 @@ def normalize_boxes(boxes, image_shape):
       height, width = image_shape
     else:
       image_shape = tf.cast(image_shape, dtype=boxes.dtype)
-      height = image_shape[..., 0:1]
-      width = image_shape[..., 1:2]
+      height = image_shape[:, :, 0:1]
+      width = image_shape[:, :, 1:2]
 
-    ymin = boxes[..., 0:1] / height
-    xmin = boxes[..., 1:2] / width
-    ymax = boxes[..., 2:3] / height
-    xmax = boxes[..., 3:4] / width
+    ymin = boxes[:, :, 0:1] / height
+    xmin = boxes[:, :, 1:2] / width
+    ymax = boxes[:, :, 2:3] / height
+    xmax = boxes[:, :, 3:4] / width
 
     normalized_boxes = tf.concat([ymin, xmin, ymax, xmax], axis=-1)
     return normalized_boxes
@@ -194,8 +194,8 @@ def clip_boxes(boxes, image_shape):
       y_x_max_list = [height - 1.0, width - 1.0, height - 1.0, width - 1.0]
     else:
       image_shape = tf.cast(image_shape, dtype=boxes.dtype)
-      height = image_shape[..., 0:1]
-      width = image_shape[..., 1:2]
+      height = image_shape[:, :, 0:1]
+      width = image_shape[:, :, 1:2]
       y_x_max_list = tf.concat(
           [height - 1.0, width - 1.0, height - 1.0, width - 1.0], -1)
 
@@ -222,10 +222,10 @@ def compute_outer_boxes(boxes, image_shape, scale=1.0):
     raise ValueError(
         'scale is {}, but outer box scale must be greater than 1.0.'.format(
             scale))
-  centers_y = (boxes[..., 0] + boxes[..., 2]) / 2.0
-  centers_x = (boxes[..., 1] + boxes[..., 3]) / 2.0
-  box_height = (boxes[..., 2] - boxes[..., 0]) * scale
-  box_width = (boxes[..., 3] - boxes[..., 1]) * scale
+  centers_y = (boxes[:, :, 0] + boxes[:, :, 2]) / 2.0
+  centers_x = (boxes[:, :, 1] + boxes[:, :, 3]) / 2.0
+  box_height = (boxes[:, :, 2] - boxes[:, :, 0]) * scale
+  box_width = (boxes[:, :, 3] - boxes[:, :, 1]) * scale
   outer_boxes = tf.stack([centers_y - box_height / 2.0,
                           centers_x - box_width / 2.0,
                           centers_y + box_height / 2.0,
@@ -257,19 +257,19 @@ def encode_boxes(boxes, anchors, weights=None):
 
   with tf.name_scope('encode_boxes'):
     boxes = tf.cast(boxes, dtype=anchors.dtype)
-    ymin = boxes[..., 0:1]
-    xmin = boxes[..., 1:2]
-    ymax = boxes[..., 2:3]
-    xmax = boxes[..., 3:4]
+    ymin = boxes[:, :, 0:1]
+    xmin = boxes[:, :, 1:2]
+    ymax = boxes[:, :, 2:3]
+    xmax = boxes[:, :, 3:4]
     box_h = ymax - ymin + 1.0
     box_w = xmax - xmin + 1.0
     box_yc = ymin + 0.5 * box_h
     box_xc = xmin + 0.5 * box_w
 
-    anchor_ymin = anchors[..., 0:1]
-    anchor_xmin = anchors[..., 1:2]
-    anchor_ymax = anchors[..., 2:3]
-    anchor_xmax = anchors[..., 3:4]
+    anchor_ymin = anchors[:, :, 0:1]
+    anchor_xmin = anchors[:, :, 1:2]
+    anchor_ymax = anchors[:, :, 2:3]
+    anchor_xmax = anchors[:, :, 3:4]
     anchor_h = anchor_ymax - anchor_ymin + 1.0
     anchor_w = anchor_xmax - anchor_xmin + 1.0
     anchor_yc = anchor_ymin + 0.5 * anchor_h
@@ -312,10 +312,10 @@ def decode_boxes(encoded_boxes, anchors, weights=None):
 
   with tf.name_scope('decode_boxes'):
     encoded_boxes = tf.cast(encoded_boxes, dtype=anchors.dtype)
-    dy = encoded_boxes[..., 0:1]
-    dx = encoded_boxes[..., 1:2]
-    dh = encoded_boxes[..., 2:3]
-    dw = encoded_boxes[..., 3:4]
+    dy = encoded_boxes[:, :, 0:1]
+    dx = encoded_boxes[:, :, 1:2]
+    dh = encoded_boxes[:, :, 2:3]
+    dw = encoded_boxes[:, :, 3:4]
     if weights:
       dy /= weights[0]
       dx /= weights[1]
@@ -324,24 +324,29 @@ def decode_boxes(encoded_boxes, anchors, weights=None):
     dh = tf.minimum(dh, BBOX_XFORM_CLIP)
     dw = tf.minimum(dw, BBOX_XFORM_CLIP)
 
-    anchor_ymin = anchors[..., 0:1]
-    anchor_xmin = anchors[..., 1:2]
-    anchor_ymax = anchors[..., 2:3]
-    anchor_xmax = anchors[..., 3:4]
-    anchor_h = anchor_ymax - anchor_ymin + 1.0
-    anchor_w = anchor_xmax - anchor_xmin + 1.0
-    anchor_yc = anchor_ymin + 0.5 * anchor_h
-    anchor_xc = anchor_xmin + 0.5 * anchor_w
+    anchor_ymin = anchors[:, :, 0:1]
+    anchor_xmin = anchors[:, :, 1:2]
+    anchor_ymax = anchors[:, :, 2:3]
+    anchor_xmax = anchors[:, :, 3:4]
+    anchor_h = anchor_ymax #- anchor_ymin #+ 1.0
+    anchor_w = anchor_xmax #- anchor_xmin #+ 1.0
+    anchor_yc = anchor_ymin #+ 0.5 * anchor_h
+    anchor_xc = anchor_xmin #+ 0.5 * anchor_w
 
-    decoded_boxes_yc = dy * anchor_h + anchor_yc
-    decoded_boxes_xc = dx * anchor_w + anchor_xc
-    decoded_boxes_h = tf.exp(dh) * anchor_h
-    decoded_boxes_w = tf.exp(dw) * anchor_w
+    # decoded_boxes_yc = dy * anchor_h + anchor_yc
+    # decoded_boxes_xc = dx * anchor_w + anchor_xc
+    # decoded_boxes_h = tf.exp(dh) * anchor_h
+    # decoded_boxes_w = tf.exp(dw) * anchor_w
 
-    decoded_boxes_ymin = decoded_boxes_yc - 0.5 * decoded_boxes_h
-    decoded_boxes_xmin = decoded_boxes_xc - 0.5 * decoded_boxes_w
-    decoded_boxes_ymax = decoded_boxes_ymin + decoded_boxes_h - 1.0
-    decoded_boxes_xmax = decoded_boxes_xmin + decoded_boxes_w - 1.0
+    # decoded_boxes_ymin = decoded_boxes_yc #- 0.5 * decoded_boxes_h
+    # decoded_boxes_xmin = decoded_boxes_xc #- 0.5 * decoded_boxes_w
+    # decoded_boxes_ymax = decoded_boxes_ymin #+ decoded_boxes_h - 1.0
+    # decoded_boxes_xmax = decoded_boxes_xmin #+ decoded_boxes_w - 1.0
+
+    decoded_boxes_ymin = anchor_yc
+    decoded_boxes_xmin = anchor_xc
+    decoded_boxes_ymax = anchor_h
+    decoded_boxes_xmax = anchor_w
 
     decoded_boxes = tf.concat(
         [decoded_boxes_ymin, decoded_boxes_xmin,
@@ -380,13 +385,13 @@ def filter_boxes(boxes, scores, image_shape, min_size_threshold):
       height, width = image_shape
     else:
       image_shape = tf.cast(image_shape, dtype=boxes.dtype)
-      height = image_shape[..., 0]
-      width = image_shape[..., 1]
+      height = image_shape[:, :, 0]
+      width = image_shape[:, :, 1]
 
-    ymin = boxes[..., 0]
-    xmin = boxes[..., 1]
-    ymax = boxes[..., 2]
-    xmax = boxes[..., 3]
+    ymin = boxes[:, :, 0]
+    xmin = boxes[:, :, 1]
+    ymax = boxes[:, :, 2]
+    xmax = boxes[:, :, 3]
 
     h = ymax - ymin + 1.0
     w = xmax - xmin + 1.0

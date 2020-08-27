@@ -368,8 +368,11 @@ class MultilevelDetectionGenerator(object):
 
   def __call__(self, box_outputs, class_outputs, anchor_boxes, image_shape):
     # Collects outputs from all levels into a list.
+
     boxes = []
     scores = []
+    anchors = []
+
     for i in range(self._min_level, self._max_level + 1):
       box_outputs_i_shape = tf.shape(box_outputs[i])
       batch_size = box_outputs_i_shape[0]
@@ -386,21 +389,29 @@ class MultilevelDetectionGenerator(object):
       # One stage detector only supports class agnostic box regression.
       anchor_boxes_i = tf.reshape(anchor_boxes[i], [batch_size, -1, 4])
       box_outputs_i = tf.reshape(box_outputs[i], [batch_size, -1, 4])
-      boxes_i = box_utils.decode_boxes(box_outputs_i, anchor_boxes_i)
+      # boxes_i = box_utils.decode_boxes(box_outputs_i, anchor_boxes_i)
 
-      # Box clipping.
-      boxes_i = box_utils.clip_boxes(boxes_i, image_shape)
+      # # Box clipping.
+      # boxes_i = box_utils.clip_boxes(boxes_i, image_shape)
 
-      boxes.append(boxes_i)
+      anchors.append(anchor_boxes_i)
+      boxes.append(box_outputs_i)
       scores.append(scores_i)
+
+    anchors = tf.concat(anchors, axis=1)
     boxes = tf.concat(boxes, axis=1)
-    boxes = tf.expand_dims(boxes, axis=2)
     scores = tf.concat(scores, axis=1)
 
+    anchors = tf.reshape(anchors, (-1,anchors.shape[-1]))
+    
     if not self._apply_nms:
       return {
-          'raw_boxes': boxes,
-          'raw_scores': scores,
+          'box_outputs': boxes,
+          'class_outputs': scores,
+          'anchor_boxes': anchors,
+          # 'raw_boxes': boxes,
+          # 'raw_scores': scores,
+          # 'raw_shapes': shapes,
       }
 
     nmsed_boxes, nmsed_scores, nmsed_classes, valid_detections = (

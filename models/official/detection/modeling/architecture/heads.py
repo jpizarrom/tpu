@@ -750,7 +750,7 @@ class ShapemaskCoarsemaskHead(object):
                                 tf.expand_dims(classes, -1), batch_dims=2)
         mask_logits = tf.squeeze(mask_logits, axis=2)
       else:
-        mask_logits = mask_logits[..., 0]
+        mask_logits = mask_logits[:, :, 0]
 
       return mask_logits
 
@@ -882,7 +882,7 @@ class ShapemaskFinemaskHead(object):
                                 tf.expand_dims(classes, -1), batch_dims=2)
         mask_logits = tf.squeeze(mask_logits, axis=2)
       else:
-        mask_logits = mask_logits[..., 0]
+        mask_logits = mask_logits[:, :, 0]
 
     return mask_logits
 
